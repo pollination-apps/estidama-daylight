@@ -12,8 +12,9 @@ from typing import List, Dict
 from honeybee.model import Model as HBModel
 from pollination_streamlit_io import get_host, get_hbjson
 
-from estidama import OccupiedArea, get_occupied_rooms
+from estidama import OccupiedArea, get_occupied_rooms, select_program, validate_rooms
 from web import show_model
+from helper import get_hbjson_path
 
 
 st.set_page_config(
@@ -27,13 +28,6 @@ st.sidebar.image(
     '_pollination_brandmark-p-500.png',
     use_column_width=True
 )
-
-
-class Programs(Enum):
-    general = 'General'
-    retail = 'Retail'
-    residential = 'Residential'
-    school = 'School'
 
 
 def main():
@@ -59,18 +53,7 @@ def main():
     )
 
     # program
-    st.subheader('Program')
-    st.markdown('The program type will determine the threshold for compliance analysis.')
-    program = st.radio('Select program', options=[
-        name.value for name in Programs])
-
-    if program == 'Retail':
-        st.warning('All retail areas are excluded from achieving this credit.'
-                   ' If this is a mixed development project involving retail spaces,'
-                   ' make sure to NOT include those zones in your selection of'
-                   ' occupied areas.')
-
-    st.session_state.program = program
+    program = select_program()
 
     # host
     host = get_host()
@@ -92,39 +75,18 @@ def main():
             st.error('The uploaded model does not have any rooms (zones).')
             return
 
-        hbjson_path = st.session_state.temp_folder.joinpath(
-            f'{hb_model.identifier}.hbjson')
-        hbjson_path.write_text(json.dumps(hb_model.to_dict()))
-        st.session_state.hbjson_path = hbjson_path
-
         if host == 'web':
             st.markdown('Visually inspect the model to see if this is what you'
                         ' wish to simulate.')
+
+            hbjson_path = get_hbjson_path(st.session_state.temp_folder, hb_model)
+            st.session_state.hbjson_path = hbjson_path
+
             show_model(hbjson_path)
 
         occupied_rooms = get_occupied_rooms(hb_model)
 
-        col1, col2 = st.columns(2)
-
-        with col1:
-            checked = st.checkbox('Validate Occupied Areas')
-
-        with col2:
-            st.markdown(
-                'The app will check each occupied area for windows and shades (manual glare control devices).')
-
-        if checked:
-            tolerance = st.number_input('Tolerance', value=0.01)
-
-            table_dict = {'name': [], 'has_windows': [], 'has_shades': []}
-            for room in occupied_rooms:
-                occupied_area = OccupiedArea(room, tolerance)
-                table_dict['name'].append(occupied_area.name)
-                table_dict['has_windows'].append(occupied_area.has_windows)
-                table_dict['has_shades'].append(occupied_area.has_shades)
-
-            df = pd.DataFrame.from_dict(table_dict)
-            st.write(df)
+        validate_rooms(occupied_rooms, program)
 
 
 if __name__ == '__main__':
