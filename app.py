@@ -3,16 +3,18 @@
 import tempfile
 import json
 import streamlit as st
+import pandas as pd
 
 from enum import Enum
 from pathlib import Path
 from typing import List, Dict
-from pollination_streamlit_io import get_host, get_hbjson
-from honeybee.model import Model as HBModel
-from honeybee.room import Room
 
-from helper import local_css
+from honeybee.model import Model as HBModel
+from pollination_streamlit_io import get_host, get_hbjson
+
+from estidama import OccupiedArea, get_occupied_rooms
 from web import show_model
+
 
 st.set_page_config(
     page_title='Estidama Daylight',
@@ -34,95 +36,7 @@ class Programs(Enum):
     school = 'School'
 
 
-def checked_apertures_and_shades(rooms: List[Room]) -> List[Room]:
-
-    checked_rooms = []
-    for room in rooms:
-        if room.exterior_aperture_area < 1:
-            st.error(
-                f'Zone {room.display_name} has not windows. If this is an occupied'
-                ' area you wish to be part of this analysis then make sure'
-                ' it has windows to outside.')
-            return
-
-        for face in room.faces:
-            if face.apertures:
-                for aperture in face.apertures:
-                    if len(aperture.indoor_shades) == 0 and len(aperture.outdoor_shades) == 0:
-                        st.warning(
-                            f'Zone {room.display_name} has no internal or external glare control'
-                            'devices.')
-        checked_rooms.append(room)
-
-    return checked_rooms
-
-
-@st.cache(hash_funcs={
-    HBModel: (lambda model: len(model.rooms)),
-    Room: (lambda room: {'volume': room.volume,
-           'area': room.floor_area, 'faces': len(room.faces)})},
-          allow_output_mutation=True)
-def get_room_dict(hb_model: HBModel) -> Dict[str, Room]:
-    print("I am called")
-    return {room.display_name.lower(): room for room in hb_model.rooms}
-
-
-def get_occupied_rooms(room_dict: Dict[str, Room]) -> List[Room]:
-
-    st.subheader('Choose Occupied Areas')
-
-    if 'occupied_room_names' not in st.session_state:
-        st.session_state.occupied_room_names = []
-    if 'unique_occupied_room_names' not in st.session_state:
-        st.session_state.unique_occupied_room_names = []
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        name = st.text_input('Search areas')
-        if name:
-            searched_room_names = [room_name for room_name in room_dict
-                                   if room_name.find(name) == 0]
-        else:
-            searched_room_names = []
-
-    with col2:
-        selected_room_names = st.multiselect('Select areas.',
-                                             options=list(room_dict.keys()))
-
-    staged_room_names: List[str] = searched_room_names + selected_room_names
-    st.write('Areas staged to be added to the occupied areas.')
-    st.write(staged_room_names)
-
-    col3, col4 = st.columns(2)
-    with col3:
-        add_names = st.button('Add to occupied areas', key='add rooms',
-                              help='Add staged areas to the occupied areas.')
-
-    with col4:
-        clear_names = st.button(
-            'Clear occupied areas', key='clear occupied areas',
-            help='Reset occupied areas.')
-
-    if add_names:
-        st.session_state.occupied_room_names.extend(staged_room_names)
-
-    st.session_state.unique_occupied_room_names = list(
-        set(st.session_state.occupied_room_names))
-
-    if clear_names:
-        st.session_state.occupied_room_names = []
-        st.session_state.unique_occupied_room_names = []
-
-    st.write(f'Occupied areas.')
-    st.write(st.session_state.unique_occupied_room_names)
-
-    return [room_dict[room_name] for room_name in
-            st.session_state.unique_occupied_room_names]
-
-
 def main():
-    local_css('style.css')
 
     st.title('Estidama Daylight')
     st.markdown('An app to check compliance for the Pearl Building Rating'
@@ -132,7 +46,7 @@ def main():
                 ' [here](https://pages.dmt.gov.ae/en/Urban-Planning/'
                 'Pearl-Building-Rating-System). ')
 
-    st.subheader('Relevant Definitions:')
+    st.subheader('Definitions:')
     st.markdown(
         '1. Occupied area: Any internal space intended for sedentary occupancy.'
     )
@@ -145,7 +59,7 @@ def main():
     )
 
     # program
-    st.subheader('Choose Program')
+    st.subheader('Program')
     st.markdown('The program type will determine the threshold for compliance analysis.')
     program = st.radio('Select program', options=[
         name.value for name in Programs])
@@ -170,8 +84,13 @@ def main():
     data = get_hbjson('upload-model')
 
     if data:
+
         model_data = data['hbjson']
         hb_model = HBModel.from_dict(model_data)
+
+        if len(hb_model.rooms) == 0:
+            st.error('The uploaded model does not have any rooms (zones).')
+            return
 
         hbjson_path = st.session_state.temp_folder.joinpath(
             f'{hb_model.identifier}.hbjson')
@@ -183,8 +102,29 @@ def main():
                         ' wish to simulate.')
             show_model(hbjson_path)
 
-        room_dict = get_room_dict(hb_model)
-        occupied_rooms = get_occupied_rooms(room_dict)
+        occupied_rooms = get_occupied_rooms(hb_model)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            checked = st.checkbox('Validate Occupied Areas')
+
+        with col2:
+            st.markdown(
+                'The app will check each occupied area for windows and shades (manual glare control devices).')
+
+        if checked:
+            tolerance = st.number_input('Tolerance', value=0.01)
+
+            table_dict = {'name': [], 'has_windows': [], 'has_shades': []}
+            for room in occupied_rooms:
+                occupied_area = OccupiedArea(room, tolerance)
+                table_dict['name'].append(occupied_area.name)
+                table_dict['has_windows'].append(occupied_area.has_windows)
+                table_dict['has_shades'].append(occupied_area.has_shades)
+
+            df = pd.DataFrame.from_dict(table_dict)
+            st.write(df)
 
 
 if __name__ == '__main__':
