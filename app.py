@@ -1,20 +1,18 @@
 """Pollination outdoor comfort app."""
 
 import tempfile
-import json
 import streamlit as st
-import pandas as pd
-
-from enum import Enum
 from pathlib import Path
-from typing import List, Dict
+from PIL import Image
 
 from honeybee.model import Model as HBModel
 from pollination_streamlit_io import get_host, get_hbjson
 
-from estidama import OccupiedArea, get_occupied_rooms, select_program, validate_rooms
+from estidama import get_occupied_rooms, select_program, validate_rooms,\
+    relevant_definitions
 from web import show_model
-from helper import get_hbjson_path
+from helper import write_hbjson
+from model import visualize_model_with_grids
 
 
 st.set_page_config(
@@ -32,7 +30,15 @@ st.sidebar.image(
 
 def main():
 
-    st.title('Estidama Daylight')
+    col1, col2 = st.columns([1, 5])
+
+    with col1:
+        image = Image.open('assets/images/estidama.png')
+        st.image(image, width=100)
+
+    with col2:
+        st.title('Estidama Daylight')
+
     st.markdown('An app to check compliance for the Pearl Building Rating'
                 ' System(PBRS) LBi-7 Daylight & Glare credit.'
                 ' This app uses version 1.0, April 2010 of PBRS that can be'
@@ -40,29 +46,19 @@ def main():
                 ' [here](https://pages.dmt.gov.ae/en/Urban-Planning/'
                 'Pearl-Building-Rating-System). ')
 
-    st.subheader('Definitions:')
-    st.markdown(
-        '1. Occupied area: Any internal space intended for sedentary occupancy.'
-    )
-    st.markdown(
-        '2. Mixed-use-development: A development that includes more than occupancy type'
-        ' - such as residential,'
-        'commercial, industrial, public or semi-public - within the same building, project'
-        'or site . The most common examples are a project with both commercial and'
-        'residential uses, or commercial and industrial uses. '
-    )
+    relevant_definitions()
 
-    # program
     program = select_program()
 
-    # host
     host = get_host()
     if not host:
         host = 'web'
 
-    # tempfolder
+    # TODO: Expose this on UI and get this info from CAD environment
+    tolerance = 0.01
+
     if 'temp_folder' not in st.session_state:
-        st.session_state.temp_folder = Path(tempfile.mkdtemp())
+        st.session_state.temp_folder = Path(tempfile.mkdtemp(prefix=f'{host}_'))
 
     data = get_hbjson('upload-model')
 
@@ -79,14 +75,17 @@ def main():
             st.markdown('Visually inspect the model to see if this is what you'
                         ' wish to simulate.')
 
-            hbjson_path = get_hbjson_path(st.session_state.temp_folder, hb_model)
-            st.session_state.hbjson_path = hbjson_path
-
-            show_model(hbjson_path)
+            hbjson_path = write_hbjson(st.session_state.temp_folder, hb_model)
+            show_model(hbjson_path, st.session_state.temp_folder, key='model')
 
         occupied_rooms = get_occupied_rooms(hb_model)
 
-        validate_rooms(occupied_rooms, program)
+        validate_rooms(occupied_rooms, program, tolerance)
+
+        hbjson_with_grids = visualize_model_with_grids(
+            hb_model, occupied_rooms, st.session_state.temp_folder, host, tolerance)
+
+        st.session_state.hbjson_path = hbjson_with_grids
 
 
 if __name__ == '__main__':
