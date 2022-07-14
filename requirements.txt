@@ -1,6 +1,6 @@
 pollination-streamlit>=0.3.0
 pollination-streamlit-viewer>=0.4.0
 pollination-streamlit-io>=0.31.3
-honeybee-vtk >= 0.38.2
+honeybee-vtk >= 0.38.3
 lbt-recipes>=0.22.6
 pandas==1.3.5
