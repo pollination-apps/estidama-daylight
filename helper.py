@@ -6,14 +6,34 @@ from pathlib import Path
 from honeybee.model import Model as HBModel
 
 
-def get_hbjson_path(temp_folder: Path, hb_model: HBModel) -> Path:
-    hbjson_path = temp_folder.joinpath(f'{hb_model.identifier}.hbjson')
+def write_hbjson(target_folder: Path, hb_model: HBModel, name: str = None) -> Path:
+    """Write a Honeybee model as an HBJSOn file.
+
+    args:
+        target_folder: Path to the folder where the HBJSON file will be written.
+        hb_model: The honeybee model to write as HBJSON.
+        name: Name of the HBJSON file. Defaults to the identifier of the Honeybee model.
+
+    returns:
+        Path to the written HBJSON file.
+    """
+    if not name:
+        hbjson_name = hb_model.identifier
+    else:
+        hbjson_name = name
+
+    hbjson_path = target_folder.joinpath(f'{hbjson_name}.hbjson')
     hbjson_path.write_text(json.dumps(hb_model.to_dict()))
 
     return hbjson_path
 
 
-def local_css(file_name):
-    """Load local css file."""
-    with open(file_name) as f:
+def local_css(file_path: Path):
+    """Inject a local CSS file in the Streamlit app.
+
+    args:
+        file_path: Path to the local CSS file.
+    """
+
+    with open(file_path.as_posix()) as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
