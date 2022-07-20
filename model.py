@@ -69,13 +69,14 @@ def add_sensor_grids(hb_model: HBModel, rooms: List[Room],
     return model
 
 
-def visualize_model_with_grids(hb_model: HBModel, rooms: List[Room],
-                               target_folder, host: str,
-                               tolerance: float) -> Union[Path, None]:
-    """Visualize Honeybee model after adding grids to it.
+def sensor_grids(hb_model: HBModel, rooms: List[Room],
+                 target_folder, host: str,
+                 tolerance: float) -> Union[Path, None]:
+    """Add sensor grids to model and visualize it.
 
-    The function will also write the Honeybee model as HBJSON after grids have been
-    added to it.
+    UI for the Sensor Grids. The functions adds the sensor grids to the rooms in the
+    model based on the rooms provided in the rooms parameter. The function also
+    visualizes the model after the grids are added.
 
     args:
         hb_model: The Honeybee model to add grids it.
@@ -88,7 +89,15 @@ def visualize_model_with_grids(hb_model: HBModel, rooms: List[Room],
         Path to the written HBJSON file with grids.
     """
 
-    add_grids = st.checkbox('Add grids')
+    st.subheader("Sensor Grids")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        add_grids = st.checkbox('Add grids')
+
+    with col2:
+        st.markdown('Visually inspect the model to see if grids are added correctly.')
 
     if add_grids:
 
@@ -103,7 +112,6 @@ def visualize_model_with_grids(hb_model: HBModel, rooms: List[Room],
                                          name=f'{hb_model_with_grids.identifier}_with_grids')
 
         if host == 'web':
-            st.markdown('Visually inspect the model to see if grids are added correctly.')
             show_model(hbjson_with_grids, target_folder, key='model-grids',
                        grid_options=SensorGridOptions.Mesh, recreate_vtkjs=True)
         else:
