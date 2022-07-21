@@ -221,3 +221,33 @@ class Window:
             output.pop('warning')
 
         return output
+
+
+class PointInTime:
+    """Object to represent Estidama simulation time as a point in time.
+
+    This object represents a point in time at which a simulation will be run to see
+    how much daylight the occupied area gets.
+
+    args:
+        month: Month as a number between 1 and 12.
+        day: Day as a number between 1 and 31.
+        hour: Hour as a number between 0 and 23.
+    """
+
+    def __init__(self, month: int, day: int, hour: int) -> None:
+        self._month = month
+        self._day = day
+        self._hour = hour
+
+    @property
+    def month(self) -> int:
+        return self._month
+
+    @property
+    def day(self) -> int:
+        return self._day
+
+    @property
+    def hour(self) -> int:
+        return self._hour

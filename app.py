@@ -10,6 +10,8 @@ from pollination_streamlit_io import get_host
 from model import sensor_grids
 from introduction import introduction
 from occupied_area import select, validate
+from submit import submit
+
 
 st.set_page_config(
     page_title='Estidama Daylight',
@@ -39,9 +41,10 @@ def main():
         program, hb_model = introduction(
             st.session_state.temp_folder, st.session_state.host)
 
-        if hb_model:
-            st.session_state.program = program
-            st.session_state.hb_model = hb_model
+        if not hb_model:
+            return
+        st.session_state.program = program
+        st.session_state.hb_model = hb_model
 
     with tab1:
         if 'hb_model' not in st.session_state:
@@ -56,17 +59,27 @@ def main():
             st.session_state.hb_model, occupied_rooms, st.session_state.temp_folder,
             st.session_state.host, st.session_state.tolerance)
 
-        st.session_state.hbjson_path = hbjson_with_grids
+        if hbjson_with_grids:
+            st.session_state.hbjson_path = hbjson_with_grids
 
     with tab2:
         if 'hbjson_path' not in st.session_state:
             st.error(
-                'Go back to the Occupied Areas tab and add grids to selected'
+                'Go back to the Occupied Areas tab and add grids to the selected'
                 ' occupied areas.')
             return
 
+        job_url = submit(st.session_state.temp_folder, st.session_state.hbjson_path)
+
+        if job_url:
+            st.session_state.job_url = job_url
+
     with tab3:
-        pass
+        if 'job_url' not in st.session_state:
+            st.error('Go back to the Submit tab and submit the job.')
+            return
+
+        st.markdown(f'Watch the job [here]({st.session_state.job_url})')
 
 
 if __name__ == '__main__':
