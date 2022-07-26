@@ -3,7 +3,6 @@
 import streamlit as st
 from PIL import Image
 
-from enum import Enum
 from pathlib import Path
 from typing import Tuple, Union
 
@@ -12,14 +11,7 @@ from pollination_streamlit_io import get_hbjson
 
 from helper import write_hbjson
 from web import show_model
-
-
-class Program(Enum):
-    """Building programs."""
-    general = 'General'
-    retail = 'Retail'
-    residential = 'Residential'
-    school = 'School'
+from estidama import Program
 
 
 def relevant_definitions() -> None:

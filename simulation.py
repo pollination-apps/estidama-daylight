@@ -1,10 +1,10 @@
-"""Module to schedule a job on Pollination."""
+"""Simulation tab of the Estidama daylight app."""
 
 
 import streamlit as st
 import time
 
-from typing import Union
+from typing import Union, Tuple
 from pathlib import Path
 from streamlit.uploaded_file_manager import UploadedFile
 
@@ -18,6 +18,15 @@ from estidama import PointInTime
 
 
 def get_epw(epw_data: UploadedFile, target_folder: Path) -> Union[EPW, None]:
+    """Get Ladybug EPW object from the Streamlit UploadedFile object.
+
+    args:
+        epw_data: A Streamlit UploadedFile object for an EPW file.
+        target_folder: Path to the folder where the EPW file will be written.
+
+    returns:
+        A Ladybug EPW object for the uploaded EPW file.
+    """
     epw_path = target_folder.joinpath('sample.epw')
     epw_path.write_bytes(epw_data.read())
     epw = EPW(epw_path)
@@ -25,22 +34,49 @@ def get_epw(epw_data: UploadedFile, target_folder: Path) -> Union[EPW, None]:
 
 
 def cie_sky(location: Location, month: int, day: int, hour: int, north: int) -> str:
+    """Get representation of the CIE sky as a string.
+
+    args:
+        location: A Ladybug location object.
+        month: Month in a year. Acceptable numbers are between 1 to 12.
+        day: Day in the month. Acceptable numbers are between 1 to 31.
+        hour: Hour in the day. Acceptable numbers are between 0 to 23.
+        north: The angle in degrees from positive Y.
+
+    returns:
+        A string representation of the CIE clear sky with sun.
+    """
     cie = CIE.from_location(location, month, day, hour, north_angle=north)
     return f'cie -alt {cie.altitude} -az {cie.azimuth} -type 0 -g 0.2'
 
 
-def get_job(hbjson_path: Path, api_client: ApiClient, owner: str, project: str,
-            study_name: str, study_description: str,
-            north: int, epw: EPW) -> NewJob:
+def create_job(hbjson_path: Path, api_client: ApiClient, owner: str, project: str,
+               name: str, description: str,
+               north: int, epw: EPW) -> NewJob:
+    """Create a Job to run a simulation on Pollination.
+
+    args:
+        hbjson_path: Path to the HBJSON file with grids.
+        api_client: ApiClient object with Pollination API key.
+        owner: Username as a string.
+        project: Project name as a string.
+        name: Name of the simulation as a string.
+        description: Description of the simulation as a string.
+        north: The angle in degrees from positive Y.
+        epw: A Ladybug EPW object.
+
+    returns:
+        A NewJob object to schedule a simulation on Pollination.
+    """
 
     recipe = Recipe('ladybug-tools', 'point-in-time-grid', 'latest', api_client)
 
     times = [PointInTime(6, 21, 10), PointInTime(6, 21, 12), PointInTime(
-        6, 21, 14), PointInTime(9, 21, 10), PointInTime(9, 21, 12),
-        PointInTime(9, 21, 14)]
+        6, 21, 14), PointInTime(9, 21, 14), PointInTime(9, 21, 12),
+        PointInTime(9, 21, 10)]
 
-    new_job = NewJob(owner, project, recipe, name=study_name,
-                     description=study_description, client=api_client)
+    new_job = NewJob(owner, project, recipe, name=name,
+                     description=description, client=api_client)
 
     arguments = []
 
@@ -53,13 +89,16 @@ def get_job(hbjson_path: Path, api_client: ApiClient, owner: str, project: str,
         argument['sky'] = cie_sky(
             epw.location, point.month, point.day, point.hour, north)
         arguments.append(argument)
+        argument['month_day_hour'] = point.as_string()
 
     new_job.arguments = arguments
 
     return new_job
 
 
-def submit(target_folder: Path, hbjson_path: Path) -> Union[str, None]:
+def simulation(target_folder: Path, hbjson_path: Path) -> Union[Tuple[str, ApiClient],
+                                                                Tuple[None, None]]:
+    """UI for the simulation tab of the Estidama app."""
 
     st.subheader('Pollination Credentials')
 
@@ -82,12 +121,14 @@ def submit(target_folder: Path, hbjson_path: Path) -> Union[str, None]:
 
             api_client = ApiClient(api_token=api_key)
             epw = get_epw(epw_data, target_folder)
-            job = get_job(hbjson_path, api_client, owner, project,
-                          study_name, study_description, north, epw)
+            job = create_job(hbjson_path, api_client, owner, project,
+                             study_name, study_description, north, epw)
 
             running_job = job.create()
 
             time.sleep(2)
             job_url = f'https://app.pollination.cloud/{running_job.owner}/projects/{running_job.project}/jobs/{running_job.id}'
             st.success('Job submitted to Pollination. Move to the next tab.')
-            return job_url
+            return job_url, api_client
+
+    return None, None

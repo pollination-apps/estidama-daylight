@@ -2,9 +2,10 @@
 
 
 import streamlit as st
+from uuid import uuid1
 
 from pathlib import Path
-from typing import List, Union
+from typing import List, Union, Tuple
 
 from ladybug_geometry.geometry3d import Vector3D
 from honeybee.room import Room
@@ -15,7 +16,7 @@ from honeybee_vtk.vtkjs.schema import SensorGridOptions
 
 from pollination_streamlit_io import send_hbjson
 
-from helper import write_hbjson
+from helper import write_hbjson, hash_model, hash_room
 from web import show_model
 
 
@@ -69,10 +70,43 @@ def add_sensor_grids(hb_model: HBModel, rooms: List[Room],
     return model
 
 
+@st.cache(hash_funcs={HBModel: hash_model, Room: hash_room})
+def write_hbjson_with_grids(hb_model: HBModel, rooms: List[Room], grid_size: float,
+                            tolerance: float, target_folder: Path) -> Tuple[HBModel, Path]:
+    """Write an HBJSON with sensor grids added to selected rooms.
+
+    args:
+        hb_model: A Honeybee model object to which sensor grids will be added.
+        rooms: A list of rooms to which the sensor grids will be added.
+        grid_size: Minimum spacing between the two sensor points of a grid.
+        tolerance: Minimum tolerance of the model.
+        target_folder: Path to the folder where the HBJSON will be written.
+
+    returns:
+        A tuple of two items;
+
+        -   A Honeybee model with sensor grids added to the selected rooms.
+
+        -   Path to the written HBJSON file with grids.
+
+    This function will write a new HBJSON when either the name of the Honeybee model, or
+    the number of rooms in the model, or the name of any room, or the volume of any room,
+    or the number of faces in any room.
+
+    The function uses a unique identifier and the grid size to name the HBJSON file.
+    """
+    hb_model_with_grids = add_sensor_grids(hb_model, rooms, grid_size, tolerance)
+
+    hbjson_with_grids = write_hbjson(target_folder, hb_model_with_grids,
+                                     name=f'{uuid1()}_{grid_size}')
+
+    return hb_model_with_grids, hbjson_with_grids
+
+
 def sensor_grids(hb_model: HBModel, rooms: List[Room],
                  target_folder, host: str,
                  tolerance: float) -> Union[Path, None]:
-    """Add sensor grids to model and visualize it.
+    """UI to add sensor grids to model.
 
     UI for the Sensor Grids. The functions adds the sensor grids to the rooms in the
     model based on the rooms provided in the rooms parameter. The function also
@@ -106,14 +140,13 @@ def sensor_grids(hb_model: HBModel, rooms: List[Room],
             return
 
         grid_size = st.number_input('Select grid size', min_value=0.0, value=0.6)
-        hb_model_with_grids = add_sensor_grids(hb_model, rooms, grid_size, tolerance)
 
-        hbjson_with_grids = write_hbjson(target_folder, hb_model_with_grids,
-                                         name=f'{hb_model_with_grids.identifier}_with_grids')
+        hb_model_with_grids, hbjson_with_grids = write_hbjson_with_grids(
+            hb_model, rooms, grid_size, tolerance, target_folder)
 
         if host == 'web':
             show_model(hbjson_with_grids, target_folder, key='model-grids',
-                       grid_options=SensorGridOptions.Mesh, recreate_vtkjs=True)
+                       grid_options=SensorGridOptions.Mesh)
         else:
             send_hbjson(key='model-grids', hbjson=hb_model_with_grids.to_dict())
 
