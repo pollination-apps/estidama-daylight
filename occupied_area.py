@@ -1,4 +1,4 @@
-"""Occupied area tab of the Estidama-daylight tab."""
+"""Occupied areas tab of the Estidama-daylight tab."""
 
 import streamlit as st
 import pandas as pd
@@ -10,16 +10,12 @@ from honeybee.room import Room
 
 from introduction import Program
 from estidama import OccupiedArea
+from helper import hash_room
 
 
 def get_room_dict(hb_model: HBModel) -> Dict[str, Room]:
     """Get a dictionary of Room name to Room structure."""
     return {room.display_name.lower(): room for room in hb_model.rooms}
-
-
-def hash_room(room: Room) -> dict:
-    """Function to help Streamlit hash a Honeybee Room."""
-    return {'name': room.display_name, 'volume': room.volume}
 
 
 @st.cache(max_entries=1, hash_funcs={Room: hash_room})
@@ -38,7 +34,7 @@ def set_session_state_vals(room_dict: Dict[str, Room]):
 
 
 def select(hb_model: HBModel) -> List[Room]:
-    """Select Rooms in the Honeybee model to be treated as Estidama Occupied Areas.
+    """UI to Select Rooms in the Honeybee model to be treated as Estidama Occupied Areas.
 
     UI for Select. This function offers a UI for the users to select the Honeybee
     rooms to be treated as occupied ares in the context of this app.
@@ -106,7 +102,7 @@ def select(hb_model: HBModel) -> List[Room]:
 
 def validate(rooms: List[Room], program: Program,
              tolerance: float) -> None:
-    """Validate the Honeybee Rooms selected as occupied areas.
+    """UI to validate the Honeybee Rooms selected as occupied areas.
 
     UI for Validate. The function will validate the room by looking at their 
     apertures and shades. The function validates the following:

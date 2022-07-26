@@ -1,4 +1,4 @@
-"""Pollination outdoor comfort app."""
+"""Estidama-daylight app."""
 
 import tempfile
 import streamlit as st
@@ -10,8 +10,9 @@ from pollination_streamlit_io import get_host
 from model import sensor_grids
 from introduction import introduction
 from occupied_area import select, validate
-from submit import submit
-
+from simulation import simulation
+from visualization import visualization
+from result import result
 
 st.set_page_config(
     page_title='Estidama Daylight',
@@ -23,8 +24,8 @@ st.set_page_config(
 
 def main():
 
-    tab0, tab1, tab2, tab3 = st.tabs(
-        ["Introduction", "Occupied Areas", "Submit", "Results"])
+    tab0, tab1, tab2, tab3, tab4 = st.tabs(
+        ["Introduction", "Occupied Areas", "Simulation", "Visualization", "Results"])
 
     with tab0:
         st.session_state.host = get_host()
@@ -69,17 +70,32 @@ def main():
                 ' occupied areas.')
             return
 
-        job_url = submit(st.session_state.temp_folder, st.session_state.hbjson_path)
+        job_url, api_client = simulation(
+            st.session_state.temp_folder, st.session_state.hbjson_path)
 
-        if job_url:
+        if job_url and api_client:
             st.session_state.job_url = job_url
+            st.session_state.api_client = api_client
 
     with tab3:
         if 'job_url' not in st.session_state:
-            st.error('Go back to the Submit tab and submit the job.')
+            st.error('Go back to the Simulation tab and submit the job.')
             return
 
-        st.markdown(f'Watch the job [here]({st.session_state.job_url})')
+        sim_dict, res_dict = visualization(st.session_state.job_url,
+                                           st.session_state.api_client,
+                                           st.session_state.temp_folder)
+        if sim_dict and res_dict:
+            st.session_state.sim_dict = sim_dict
+            st.session_state.res_dict = res_dict
+
+    with tab4:
+        if 'res_dict' not in st.session_state:
+            st.error('Go back to the Visualization tab and make sure all the'
+                     ' six visualizations are loaded.')
+            return
+
+        result(st.session_state.sim_dict, st.session_state.res_dict)
 
 
 if __name__ == '__main__':

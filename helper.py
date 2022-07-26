@@ -37,3 +37,13 @@ def local_css(file_path: Path):
 
     with open(file_path.as_posix()) as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+
+def hash_model(hb_model: HBModel) -> dict:
+    """Help Streamlit hash a Honeybee model object."""
+    return {'name': hb_model.identifier, 'rooms': len(hb_model.rooms)}
+
+
+def hash_room(room: Room) -> dict:
+    """Help Streamlit hash a Honeybee room object."""
+    return {'name': room.identifier, 'volume': room.volume, 'faces': len(room.faces)}

@@ -2,13 +2,52 @@
 
 from __future__ import annotations
 
-from typing import List, Tuple
+from enum import Enum
+from typing import List, Tuple, Dict
 
 from honeybee.room import Room
 from honeybee.aperture import Aperture
 from honeybee.shade import Shade
 
-from introduction import Program
+
+class Program(Enum):
+    """Building programs."""
+    general = 'General'
+    retail = 'Retail'
+    residential = 'Residential'
+    school = 'School'
+
+
+def get_thesholds(program: Program) -> Dict[str, int]:
+    """Get Estidama thresholds based on building program.
+
+    args:
+        program: A Program object.
+
+    returns:
+        A dictionary with showing the minimum accepted lux value, the required percentage
+            of the area to gain 1 point, and the required percentage of the area to gain
+            2 points.
+    """
+
+    if program == Program.general:
+        return {
+            'min': 250,
+            '1 point': 50,
+            '2 points': 75
+        }
+    elif program == Program.residential:
+        return{
+            'min': 200,
+            '1 point': 50,
+            '2 points': 75
+        }
+    elif program == Program.school:
+        return {
+            'min': 300,
+            '1 point': 75,
+            '2 points': 90
+        }
 
 
 class OccupiedArea:
@@ -251,3 +290,6 @@ class PointInTime:
     @property
     def hour(self) -> int:
         return self._hour
+
+    def as_string(self) -> str:
+        return f'{self._month}_{self._day}_{self._hour}'
