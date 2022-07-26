@@ -4,6 +4,7 @@ import json
 import streamlit as st
 from pathlib import Path
 from honeybee.model import Model as HBModel
+from honeybee.room import Room
 
 
 def write_hbjson(target_folder: Path, hb_model: HBModel, name: str = None) -> Path:

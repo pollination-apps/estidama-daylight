@@ -70,8 +70,7 @@ def main():
                 ' occupied areas.')
             return
 
-        job_url, api_client = simulation(
-            st.session_state.temp_folder, st.session_state.hbjson_path)
+        job_url, api_client = simulation(st.session_state.hbjson_path)
 
         if job_url and api_client:
             st.session_state.job_url = job_url
