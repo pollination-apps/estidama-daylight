@@ -6,6 +6,7 @@ import streamlit as st
 from pathlib import Path
 
 from pollination_streamlit_io import get_host
+from pollination_streamlit.api.client import ApiClient
 
 from model import sensor_grids
 from introduction import introduction
@@ -40,7 +41,7 @@ def main():
         st.session_state.tolerance = 0.01
 
         program, hb_model = introduction(
-            st.session_state.temp_folder, st.session_state.host)
+            st.session_state.host, st.session_state.temp_folder)
 
         if not hb_model:
             return
@@ -61,6 +62,7 @@ def main():
             st.session_state.host, st.session_state.tolerance)
 
         if hbjson_with_grids:
+            st.session_state.occupied_rooms = occupied_rooms
             st.session_state.hbjson_path = hbjson_with_grids
 
     with tab2:
@@ -77,6 +79,10 @@ def main():
             st.session_state.api_client = api_client
 
     with tab3:
+        st.session_state.job_url = 'https://app.pollination.cloud/devang/projects/demo/studies/8123d1b6-71f5-414b-9601-269d5eda5c46'
+        st.session_state.api_client = ApiClient(
+            api_token='CC0E061B.0C4E4FA7BBA51BB7BEE453D3')
+
         if 'job_url' not in st.session_state:
             st.error('Go back to the Simulation tab and submit the job.')
             return
@@ -94,7 +100,8 @@ def main():
                      ' six visualizations are loaded.')
             return
 
-        result(st.session_state.sim_dict, st.session_state.res_dict)
+        result(st.session_state.program, st.session_state.occupied_rooms,
+               st.session_state.sim_dict, st.session_state.res_dict)
 
 
 if __name__ == '__main__':

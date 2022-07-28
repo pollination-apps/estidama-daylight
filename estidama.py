@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Tuple, Dict
+from turtle import pencolor
+from typing import List, Tuple
 
 from honeybee.room import Room
 from honeybee.aperture import Aperture
 from honeybee.shade import Shade
 
 
-class Program(Enum):
+class ProgramName(Enum):
     """Building programs."""
     general = 'General'
     retail = 'Retail'
@@ -18,36 +19,48 @@ class Program(Enum):
     school = 'School'
 
 
-def get_thesholds(program: Program) -> Dict[str, int]:
-    """Get Estidama thresholds based on building program.
+class Program:
+    """The Program object to be used in Estidama calculations.
 
     args:
-        program: A Program object.
-
-    returns:
-        A dictionary with showing the minimum accepted lux value, the required percentage
-            of the area to gain 1 point, and the required percentage of the area to gain
-            2 points.
+        name: Text string representing the name of the program.
+        min_threshold: Minimum illuminance in lux to be received at the sensor point
+            as required by Estidama.
+        credit_1_threshold: Minimum percentage of compliant area to receive 1 credit
+            from Estidama.
+        credit_2_threshold: Minimum percentage of compliant area to receive 2 credits
+            from Estidama.
     """
 
-    if program == Program.general:
-        return {
-            'min': 250,
-            '1 point': 50,
-            '2 points': 75
-        }
-    elif program == Program.residential:
-        return{
-            'min': 200,
-            '1 point': 50,
-            '2 points': 75
-        }
-    elif program == Program.school:
-        return {
-            'min': 300,
-            '1 point': 75,
-            '2 points': 90
-        }
+    def __init__(self, name: ProgramName, min_threshold: int, credit_1_threshold: float,
+                 credit_2_threshold: float, occupancy_sensor_requirement: str) -> None:
+        self._name = name
+        self._min_threshold = min_threshold
+        self._credit_1_threshold = credit_1_threshold
+        self._credit_2_threshold = credit_2_threshold
+        self._occupancy_sensor_requirement = occupancy_sensor_requirement
+
+    @property
+    def name(self) -> ProgramName:
+        """Name of the program."""
+        return self._name
+
+    @property
+    def min_threshold(self) -> int:
+        """Minimum lux threshold."""
+        return self._min_threshold
+
+    @property
+    def credit_1_threshold(self) -> float:
+        return self._credit_1_threshold
+
+    @property
+    def credit_2_threshold(self) -> float:
+        return self._credit_2_threshold
+
+    @property
+    def occupancy_sensor_requirement(self) -> str:
+        return self._occupancy_sensor_requirement
 
 
 class OccupiedArea:
@@ -243,7 +256,7 @@ class Window:
         if self._has_external_shades or self._has_internal_shades:
             self._has_shades = True
         else:
-            if self._program == Program.school:
+            if self._program.name == ProgramName.school:
                 self._warnings.append(
                     'For the program type of "School" shades are required.')
 
