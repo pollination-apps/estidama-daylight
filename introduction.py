@@ -11,7 +11,7 @@ from pollination_streamlit_io import get_hbjson
 
 from helper import write_hbjson
 from web import show_model
-from estidama import Program
+from estidama import Program, ProgramName
 
 
 def relevant_definitions() -> None:
@@ -30,30 +30,43 @@ def relevant_definitions() -> None:
     )
 
 
-def select_program() -> Program:
+def select_program() -> Union[Program, None]:
     """Select and get the selected building program."""
 
     st.subheader('Select Program')
     st.markdown('The program type will determine the threshold for compliance analysis.')
 
-    program = st.radio('Select program', options=[
-        name.value for name in Program])
+    name = st.radio('Select program', options=[name.value for name in ProgramName])
 
-    for member in Program.__members__.values():
-        if member.value == program:
-            program = member
-            break
+    if name == ProgramName.general.value:
+        program = Program(ProgramName.general, 250, 0.5, 0.75,
+                          'Install occupancy sensors in all rooms intended for'
+                          ' individual occupancy, conferencing or meeting rooms'
+                          ', open plan offices spaces and hallways or corridors.')
 
-    if program == Program.retail:
-        st.warning('All retail areas are excluded from achieving this credit.'
-                   ' If this is a mixed development project involving retail spaces,'
-                   ' make sure to NOT include those zones in your selection of'
-                   ' occupied areas.')
+    elif name == ProgramName.retail.value:
+        st.error('All retail areas are excluded from achieving this credit.'
+                 ' If this is a mixed development project involving retail spaces,'
+                 ' you can use "General" program. Also, make sure to NOT include'
+                 ' those zones in your selection of occupied areas.')
+        return
+
+    elif name == ProgramName.residential.value:
+        program = Program(ProgramName.residential, 200, 0.5, 0.75,
+                          'Install occupancy sensors in all communal spaces'
+                          ' of the building including hallways.')
+
+    elif name == ProgramName.school.value:
+        program = Program(ProgramName.school, 300, 0.75, 0.9,
+                          'Install occupancy sensors in all rooms intended'
+                          ' for individual occupancy, classrooms, open plan offices'
+                          ' spaces and hallways.')
 
     return program
 
 
-def introduction(target_folder: Path, host: str) -> Tuple[Program, Union[HBModel, None]]:
+def introduction(host: str, target_folder: Path,
+                 ) -> Union[Tuple[None, None], Tuple[Program, Union[HBModel, None]]]:
     """UI for the Introduction tab of the Estidama app.
 
     args:
@@ -87,6 +100,8 @@ def introduction(target_folder: Path, host: str) -> Tuple[Program, Union[HBModel
     relevant_definitions()
 
     program = select_program()
+    if not program:
+        return None, None
 
     data = get_hbjson('upload-model')
 
@@ -97,7 +112,7 @@ def introduction(target_folder: Path, host: str) -> Tuple[Program, Union[HBModel
 
         if len(hb_model.rooms) == 0:
             st.error('The uploaded model does not have any rooms (zones).')
-            return
+            return None, None
 
         if host == 'web':
             st.markdown('Visually inspect the model to see if this is what you'

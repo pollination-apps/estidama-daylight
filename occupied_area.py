@@ -53,6 +53,11 @@ def select(hb_model: HBModel) -> List[Room]:
              ' the dropdown menu and add the occupied areas. Here, examples of'
              ' a keyword are "meeting", "classroom", "corridor", etc.')
 
+    if 'occupied_areas' not in st.session_state:
+        st.session_state.occupied_areas = []
+    if 'unique_occupied_areas' not in st.session_state:
+        st.session_state.unique_occupied_areas = []
+
     set_session_state_vals(room_dict)
 
     col1, col2 = st.columns(2)

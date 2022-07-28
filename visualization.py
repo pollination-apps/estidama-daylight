@@ -69,7 +69,7 @@ def create_job(job_url: str, api_client: ApiClient) -> Job:
 
 
 def download(job: Job, target_folder: Path, folder_name: str,
-             output_name: str, extension: str) -> Dict[str, List[Path]]:
+             output_name: str) -> Dict[str, Path]:
     """Download output from a finished Job on Pollination and get a dictionary.
 
     args:
@@ -78,13 +78,10 @@ def download(job: Job, target_folder: Path, folder_name: str,
         folder_name: Name of the sub-folder that will be created at the target folder to
             write the output.
         output_name: Name of the output file as a string.
-        extension: The extension of the files you are interested in from the downloaded
-            output files. Examples are; txt, res. Make sure to name the extension
-            without the '.'.
 
     returns:
-        A dictionary with structure of run id to a list of paths to the files with the
-            requested extension.
+        A dictionary with structure of run id to path to the folder where the output is
+            downloaded for the run.
     """
     viz_folder = target_folder.joinpath(folder_name)
 
@@ -103,39 +100,15 @@ def download(job: Job, target_folder: Path, folder_name: str,
         file_path = viz_folder.joinpath(f'{count}')
         with zipfile.ZipFile(res_zip) as zip_folder:
             zip_folder.extractall(file_path)
-        output[run.id] = list(file_path.glob(f'**/*.{extension}'))
+        output[run.id] = file_path
 
     return output
 
 
-def percentage_complied(res: Path, threshold: float) -> float:
-    """Calculate the percentage of sensor points meeting the threshold.
-
-    args:
-        res: Path to the result file
-        threshold: A number. A sensor point receiving illuminance greater than or equal
-            to this number will be considered compliant.
-
-    returns:
-        Percentage of the sensor points complying with the threshold.
-    """
-
-    check = []
-    with open(res.as_posix(), 'r') as file:
-        for row in file:
-            num = float(row.rstrip('\n'))
-            if num >= threshold:
-                check.append(True)
-            else:
-                check.append(False)
-
-    return check.count(True)*100 / len(check)
-
-
 @st.cache
 def generate_dicts(job: Job, target_folder: Path) -> Tuple[Dict[str, str],
-                                                           Dict[str, List[Path]],
-                                                           Dict[str, List[Path]]]:
+                                                           Dict[str, Path],
+                                                           Dict[str, Path]]:
     """Generate dictionaries to use later.
 
     This function will download 'visualization' and 'results' output from a finished
@@ -152,10 +125,11 @@ def generate_dicts(job: Job, target_folder: Path) -> Tuple[Dict[str, str],
 
         -   sim_dict: A dictionary that ties simulation_times with the run id.
 
-        -   viz_dict: A dictionary that ties run id with downloaded .vtkjs files for
-                visualization.
+        -   viz_dict: A dictionary that ties run id with the path to the
+                folder where the .vtkjs file is downloaded.
 
-        -   res_dict: A dictionary that ties run id with downloaded result files.
+        -   res_file_dict: A dictionary that ties run id with the path to the folder
+                where the result files are downloaded.
     """
 
     df = job.runs_dataframe.dataframe
@@ -163,17 +137,17 @@ def generate_dicts(job: Job, target_folder: Path) -> Tuple[Dict[str, str],
     sim_times = list(df['month_day_hour'].values)
     sim_dict = dict(zip(sim_times, sim_ids))
 
-    viz_dict = download(job, target_folder, 'viz', 'visualization', 'vtkjs')
+    viz_dict = download(job, target_folder, 'viz', 'visualization')
 
-    res_dict = download(job, target_folder, 'result', 'results', 'res')
+    res_file_dict = download(job, target_folder, 'result', 'results')
 
-    return sim_dict, viz_dict, res_dict
+    return sim_dict, viz_dict, res_file_dict
 
 
 def visualization(job_url: str,
                   api_client: ApiClient,
                   target_folder: Path) -> Tuple[Union[None, Dict[str, str]],
-                                                Union[None, Dict[str, List[Path]]]]:
+                                                Union[None, Dict[str, Path]]]:
     """UI of visualization tab of the Estidama-daylight app.
 
     args:
@@ -187,7 +161,8 @@ def visualization(job_url: str,
 
         -   sim_dict: A dictionary that ties simulation_times with the run id.
 
-        -   res_dict: A dictionary that ties run id with downloaded result files.
+        -   res_file_dict: A dictionary that ties run id with the path to the folder
+                where the result files are downloaded.
     """
 
     job = create_job(job_url, api_client)
@@ -199,7 +174,7 @@ def visualization(job_url: str,
             st.warning(f'Simulation is {status.name}.')
 
     else:
-        sim_dict, viz_dict, res_dict = generate_dicts(job, target_folder)
+        sim_dict, viz_dict, res_file_dict = generate_dicts(job, target_folder)
 
         st.write('See how much daylight the occupied areas receive on selected points'
                  ' in time during the year.')
@@ -209,49 +184,49 @@ def visualization(job_url: str,
         with col0:
             # case-0
             case_0_id = sim_dict['9_21_10']
-            case_0_viz = viz_dict[case_0_id]
+            case_0_viz = viz_dict[case_0_id].joinpath('point_in_time.vtkjs')
 
             st.write('Daylight levels On Equinox @ 10:00')
-            viewer(key='case_0', content=case_0_viz[0].read_bytes())
+            viewer(key='case_0', content=case_0_viz.read_bytes())
 
             # case-1
             case_1_id = sim_dict['9_21_12']
-            case_1_viz = viz_dict[case_1_id]
+            case_1_viz = viz_dict[case_1_id].joinpath('point_in_time.vtkjs')
 
             st.write('Daylight levels On Equinox @ 12:00')
-            viewer(key='case_1', content=case_1_viz[0].read_bytes())
+            viewer(key='case_1', content=case_1_viz.read_bytes())
 
             # case-2
             case_2_id = sim_dict['9_21_14']
-            case_2_viz = viz_dict[case_2_id]
+            case_2_viz = viz_dict[case_2_id].joinpath('point_in_time.vtkjs')
 
             st.write('Daylight levels On Equinox @ 14:00')
-            viewer(key='case_2', content=case_2_viz[0].read_bytes())
+            viewer(key='case_2', content=case_2_viz.read_bytes())
 
         with col1:
             # case-3
             case_3_id = sim_dict['6_21_10']
-            case_3_viz = viz_dict[case_3_id]
+            case_3_viz = viz_dict[case_3_id].joinpath('point_in_time.vtkjs')
 
             st.write('Daylight levels On Summer Solstice @ 10:00')
-            viewer(key='case_3', content=case_3_viz[0].read_bytes())
+            viewer(key='case_3', content=case_3_viz.read_bytes())
 
             # case-4
             case_4_id = sim_dict['6_21_12']
-            case_4_viz = viz_dict[case_4_id]
+            case_4_viz = viz_dict[case_4_id].joinpath('point_in_time.vtkjs')
 
             st.write('Daylight levels On Summer Solstice @ 12:00')
-            viewer(key='case_4', content=case_4_viz[0].read_bytes())
+            viewer(key='case_4', content=case_4_viz.read_bytes())
 
             # case-5
             case_5_id = sim_dict['6_21_14']
-            case_5_viz = viz_dict[case_5_id]
+            case_5_viz = viz_dict[case_5_id].joinpath('point_in_time.vtkjs')
 
             st.write('Daylight levels On Summer Solstice @ 14:00')
-            viewer(key='case_5', content=case_5_viz[0].read_bytes())
+            viewer(key='case_5', content=case_5_viz.read_bytes())
 
         st.write('Go to the next tab to see the results.')
 
-        return sim_dict, res_dict
+        return sim_dict, res_file_dict
 
     return None, None
