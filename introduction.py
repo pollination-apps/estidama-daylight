@@ -34,7 +34,7 @@ def select_program() -> Union[Program, None]:
     """Select and get the selected building program."""
 
     st.subheader('Select Program')
-    st.markdown('The program type will determine the threshold for compliance analysis.')
+    st.markdown('The program type will determine the thresholds for compliance analysis.')
 
     name = st.radio('Select program', options=[name.value for name in ProgramName])
 

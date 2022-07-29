@@ -49,6 +49,8 @@ def figure_height(occupied_rooms: List[Room]) -> float:
 
 
 def additional_notes(program: Program) -> None:
+
+    st.subheader('Additional notes')
     st.write('Make sure to also do the following;')
     st.write('1. Install daylight sensors to light fittings that receive'
              ' sufficient daylight illuminance.')
@@ -56,6 +58,20 @@ def additional_notes(program: Program) -> None:
              ' any of the windows, demonstrate that automated glare control devices'
              ' are provide and they are connected to the building management system.')
     st.write(f'3. {program.occupancy_sensor_requirement}')
+
+
+def simulation_parameters(program: Program) -> None:
+
+    st.subheader('Simulation parameters')
+    st.write('As per Estidama requirements following parameters were used to conduct'
+             ' this simulation;')
+
+    st.write('1. CIE Clear sky was used.')
+    st.write('2. 7 ambient bounces were used to calculate the diffused daylight'
+             ' contribution.')
+    st.write('3. Grid was placed at 0.762 meters above the floor.')
+    st.write(f'4. {program.min_threshold} lux was used as the minium illuminance'
+             ' to be received at the sensor point for it to qualify under this credit.')
 
 
 def result(program: Program, occupied_rooms: List[Room],
@@ -152,6 +168,10 @@ def result(program: Program, occupied_rooms: List[Room],
 
     fig.update_layout(margin={'l': 0, 'r': 0, 't': 0, 'b': 0},
                       height=figure_height(occupied_rooms))
+
+    simulation_parameters(program)
+
+    st.subheader('Simulation results')
     st.plotly_chart(fig, use_container_width=True)
 
     compliant_area_percentage = average_area / area
