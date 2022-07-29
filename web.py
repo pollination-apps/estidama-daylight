@@ -42,7 +42,7 @@ def write_vtkjs(hbjson_path: Path, grid_options: SensorGridOptions,
 
 def show_model(hbjson_path: Path, target_folder: Path, key: str = '3d_viewer',
                grid_options: SensorGridOptions = SensorGridOptions.Ignore,
-               recreate_vtkjs: bool = False, subscribe: bool = False) -> None:
+               subscribe: bool = False) -> None:
     """Show HBJSON in a browser.
 
     If not done already, this function will conver the HBJSON to vtkjs and write to
@@ -57,24 +57,18 @@ def show_model(hbjson_path: Path, target_folder: Path, key: str = '3d_viewer',
         grid_options: A SensorGridOptions object to indicate what to do with the grids
             found in HBJSON. Defaults to ignoring the grids found in the model.
             Alternatives are Mesh, Sensors, and RadialGrid.
-        recreate_vtkjs: A boolean to indicate whether to recreate a new vtkjs
-            file every time the function is called. Defaults to False. This is
-            useful to show visualize changes being made to the model dynamically.
         subscribe: A boolean to subscribe or unsubscribe the VTKJS camera
              and renderer content. If you don't know what you're doing, it's best to
              keep this to False.
     """
 
-    if recreate_vtkjs:
-        vtkjs = write_vtkjs(hbjson_path, grid_options, target_folder)
-    else:
-        vtkjs_name = f'{hbjson_path.stem}_vtkjs'
+    vtkjs_name = f'{hbjson_path.stem}_vtkjs'
 
-        if vtkjs_name not in st.session_state:
-            vtkjs = write_vtkjs(hbjson_path, grid_options, target_folder)
-            st.session_state[vtkjs_name] = vtkjs
-        else:
-            vtkjs = st.session_state[vtkjs_name]
+    if vtkjs_name not in st.session_state:
+        vtkjs = write_vtkjs(hbjson_path, grid_options, target_folder)
+        st.session_state[vtkjs_name] = vtkjs
+    else:
+        vtkjs = st.session_state[vtkjs_name]
 
     viewer(content=vtkjs.read_bytes(),
            key=key, subscribe=subscribe)
