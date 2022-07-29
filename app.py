@@ -79,6 +79,10 @@ def main():
             st.session_state.api_client = api_client
 
     with tab3:
+        st.session_state.job_url = 'https://app.pollination.cloud/devang/projects/demo/studies/8123d1b6-71f5-414b-9601-269d5eda5c46'
+        st.session_state.api_client = ApiClient(
+            api_token='CC0E061B.0C4E4FA7BBA51BB7BEE453D3')
+
         if 'job_url' not in st.session_state:
             st.error('Go back to the Simulation tab and submit the job.')
             return

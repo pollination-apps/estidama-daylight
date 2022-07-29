@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from turtle import pencolor
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from honeybee.room import Room
 from honeybee.aperture import Aperture
@@ -304,5 +303,16 @@ class PointInTime:
     def hour(self) -> int:
         return self._hour
 
+    def description(self) -> Union[None, str]:
+        if self._day == 21:
+            if self._month == 9:
+                return 'Equinox'
+            elif self._month == 6:
+                return 'Solstice'
+
     def as_string(self) -> str:
         return f'{self._month}_{self._day}_{self._hour}'
+
+
+SIM_TIMES = [PointInTime(9, 21, 10), PointInTime(9, 21, 12), PointInTime(9, 21, 14),
+             PointInTime(6, 21, 10), PointInTime(6, 21, 12), PointInTime(6, 21, 14)]

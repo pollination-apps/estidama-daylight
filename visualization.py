@@ -6,13 +6,15 @@ import shutil
 import streamlit as st
 
 from enum import Enum
-from typing import List, Dict, Tuple, Union
+from typing import Dict, Tuple, Union
 from pathlib import Path
 
 from pollination_streamlit_viewer import viewer
 from pollination_streamlit.api.client import ApiClient
 from pollination_streamlit.interactors import Job
 from queenbee.job.job import JobStatusEnum
+
+from estidama import SIM_TIMES
 
 
 class SimStatus(Enum):
@@ -182,48 +184,23 @@ def visualization(job_url: str,
         col0, col1 = st.columns(2)
 
         with col0:
-            # case-0
-            case_0_id = sim_dict['9_21_10']
-            case_0_viz = viz_dict[case_0_id].joinpath('point_in_time.vtkjs')
-
-            st.write('Daylight levels On Equinox @ 10:00')
-            viewer(key='case_0', content=case_0_viz.read_bytes())
-
-            # case-1
-            case_1_id = sim_dict['9_21_12']
-            case_1_viz = viz_dict[case_1_id].joinpath('point_in_time.vtkjs')
-
-            st.write('Daylight levels On Equinox @ 12:00')
-            viewer(key='case_1', content=case_1_viz.read_bytes())
-
-            # case-2
-            case_2_id = sim_dict['9_21_14']
-            case_2_viz = viz_dict[case_2_id].joinpath('point_in_time.vtkjs')
-
-            st.write('Daylight levels On Equinox @ 14:00')
-            viewer(key='case_2', content=case_2_viz.read_bytes())
+            for sim_time in SIM_TIMES[:3]:
+                print(sim_time.as_string())
+                id = sim_dict[sim_time.as_string()]
+                viz = viz_dict[id].joinpath('point_in_time.vtkjs')
+                st.write(
+                    f'Daylight levels on {sim_time.description()} @ {sim_time.hour}:00')
+                viewer(key=f'{sim_time.as_string()}_viewer',
+                       content=viz.read_bytes(), style={'height': '344px'})
 
         with col1:
-            # case-3
-            case_3_id = sim_dict['6_21_10']
-            case_3_viz = viz_dict[case_3_id].joinpath('point_in_time.vtkjs')
-
-            st.write('Daylight levels On Summer Solstice @ 10:00')
-            viewer(key='case_3', content=case_3_viz.read_bytes())
-
-            # case-4
-            case_4_id = sim_dict['6_21_12']
-            case_4_viz = viz_dict[case_4_id].joinpath('point_in_time.vtkjs')
-
-            st.write('Daylight levels On Summer Solstice @ 12:00')
-            viewer(key='case_4', content=case_4_viz.read_bytes())
-
-            # case-5
-            case_5_id = sim_dict['6_21_14']
-            case_5_viz = viz_dict[case_5_id].joinpath('point_in_time.vtkjs')
-
-            st.write('Daylight levels On Summer Solstice @ 14:00')
-            viewer(key='case_5', content=case_5_viz.read_bytes())
+            for sim_time in SIM_TIMES[3:]:
+                id = sim_dict[sim_time.as_string()]
+                viz = viz_dict[id].joinpath('point_in_time.vtkjs')
+                st.write(
+                    f'Daylight levels on Summer {sim_time.description()} @ {sim_time.hour}:00')
+                viewer(key=f'{sim_time.as_string()}_viewer',
+                       content=viz.read_bytes(), style={'height': '344px'})
 
         st.write('Go to the next tab to see the results.')
 

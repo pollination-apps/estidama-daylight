@@ -10,4 +10,4 @@ WORKDIR /app
 
 COPY . .
 
-RUN pip install -r requirements.txt || echo no requirements.txt file
+RUN pip install -r requirements.txt --no-cache-dir || echo no requirements.txt file

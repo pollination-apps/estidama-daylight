@@ -8,31 +8,13 @@ import folium
 from streamlit_folium import st_folium
 from typing import Union, Tuple
 from pathlib import Path
-from streamlit.uploaded_file_manager import UploadedFile
 
-from ladybug.epw import EPW
-from ladybug.location import Location
+
 from honeybee_radiance.lightsource.sky.cie import CIE
 from pollination_streamlit.api.client import ApiClient
 from pollination_streamlit.interactors import NewJob, Recipe
 
-from estidama import PointInTime
-
-
-def get_epw(epw_data: UploadedFile, target_folder: Path) -> Union[EPW, None]:
-    """Get Ladybug EPW object from the Streamlit UploadedFile object.
-
-    args:
-        epw_data: A Streamlit UploadedFile object for an EPW file.
-        target_folder: Path to the folder where the EPW file will be written.
-
-    returns:
-        A Ladybug EPW object for the uploaded EPW file.
-    """
-    epw_path = target_folder.joinpath('sample.epw')
-    epw_path.write_bytes(epw_data.read())
-    epw = EPW(epw_path)
-    return epw
+from estidama import PointInTime, SIM_TIMES
 
 
 def cie_sky(latitude: float, longitude: float, month: int,
@@ -75,16 +57,12 @@ def create_job(hbjson_path: Path, api_client: ApiClient, owner: str, project: st
 
     recipe = Recipe('ladybug-tools', 'point-in-time-grid', 'latest', api_client)
 
-    times = [PointInTime(6, 21, 10), PointInTime(6, 21, 12), PointInTime(
-        6, 21, 14), PointInTime(9, 21, 14), PointInTime(9, 21, 12),
-        PointInTime(9, 21, 10)]
-
     new_job = NewJob(owner, project, recipe, name=name,
                      description=description, client=api_client)
 
     arguments = []
 
-    for point in times:
+    for point in SIM_TIMES:
         argument = {}
         model_path = new_job.upload_artifact(hbjson_path, '.')
         argument['model'] = model_path
