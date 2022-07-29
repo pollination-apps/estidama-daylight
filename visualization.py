@@ -185,7 +185,6 @@ def visualization(job_url: str,
 
         with col0:
             for sim_time in SIM_TIMES[:3]:
-                print(sim_time.as_string())
                 id = sim_dict[sim_time.as_string()]
                 viz = viz_dict[id].joinpath('point_in_time.vtkjs')
                 st.write(
