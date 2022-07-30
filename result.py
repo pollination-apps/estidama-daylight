@@ -172,11 +172,11 @@ def prepare_results(program: Program, occupied_rooms: List[Room],
             compliant_areas = []
             file_name = f'grid_{room.display_name}.res'
             for sim_time in SIM_TIMES:
-                sim_id = sim_dict[sim_time.as_string()]
+                sim_id = sim_dict[str(sim_time)]
                 res_file_path = res_file_dict[sim_id].joinpath(file_name)
                 compliant_area = room.floor_area*percentage_complied(
                     res_file_path, program.min_threshold)
-                data[sim_time.as_string()].append(compliant_area)
+                data[str(sim_time)].append(compliant_area)
                 compliant_areas.append(compliant_area)
 
             average_compliant_area = mean(compliant_areas)
@@ -186,7 +186,7 @@ def prepare_results(program: Program, occupied_rooms: List[Room],
             data['names'].append('<b>Total</b>')
             data['areas'].append(f'<b>{total_area}</b>')
             for sim_time in SIM_TIMES:
-                data[sim_time.as_string()].append('')
+                data[str(sim_time)].append('')
             data['average'].append(f'<b>{total_average_area}</b>')
 
     data_df = pd.DataFrame.from_dict(data)
@@ -230,17 +230,17 @@ def result(program: Program, occupied_rooms: List[Room],
     st.plotly_chart(figure, use_container_width=True)
 
     if compliant_area_percentage >= program.credit_2_threshold:
-        st.success(f'{compliant_area_percentage*100}% area complies with the'
-                   ' requirements. Therefore, 2 Credit points can be claimed.')
+        st.success(f'**{compliant_area_percentage*100}%** area complies with the'
+                   ' requirements. Therefore, **2 Credit points** can be claimed.')
         additional_notes(program)
         st.balloons()
 
     elif compliant_area_percentage >= program.credit_1_threshold:
-        st.success(f'{compliant_area_percentage*100}% area complies with the'
-                   ' requirements. Therefore, 1 Credit point can be claimed.')
+        st.success(f'**{compliant_area_percentage*100}%** area complies with the'
+                   ' requirements. Therefore, **1 Credit point** can be claimed.')
         additional_notes(program)
         st.balloons()
     else:
         st.write(
-            f'Only {compliant_area_percentage*100}% area complies with the requirements.'
-            ' Hence, no credit point can be claimed.')
+            f'Only **{compliant_area_percentage*100}%** area complies with the'
+            ' requirements. Hence, no credit point can be claimed.')

@@ -26,3 +26,4 @@ tox.ini
 model.html
 
 venv/*
+*.devcontainer

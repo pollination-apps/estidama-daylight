@@ -3,6 +3,7 @@
 import json
 import streamlit as st
 from pathlib import Path
+from typing import Dict
 from honeybee.model import Model as HBModel
 from honeybee.room import Room
 
@@ -48,3 +49,38 @@ def hash_model(hb_model: HBModel) -> dict:
 def hash_room(room: Room) -> dict:
     """Help Streamlit hash a Honeybee room object."""
     return {'name': room.identifier, 'volume': room.volume, 'faces': len(room.faces)}
+
+
+def create_analytical_mesh(results_folder: Path, hb_model: HBModel) -> dict:
+    """ Generate analysis grid for sketchup and rhino
+
+    args:
+        results_folder: Path to the result folder with grids_info.json and .res files.
+        hb_model: A Honeybee model.
+
+    returns:
+        An analytical mesh object.
+    """
+    hb_model = hb_model.to_dict()
+
+    info_file = results_folder.joinpath('grids_info.json')
+    info = json.loads(info_file.read_text())
+    grids = hb_model['properties']['radiance']['sensor_grids']
+
+    geometries = []
+    merged_values = []
+    for i, grid in enumerate(info):
+        result_file = Path(results_folder, f"{grid['full_id']}.res")
+        values = [float(v) for v in result_file.read_text().splitlines()]
+        # clean dict
+        mesh = json.dumps(grids[i]['mesh'])
+
+        merged_values += values
+        geometries.append(json.loads(mesh))
+
+    analytical_mesh = {
+        "type": "AnalyticalMesh",
+        "mesh": geometries,
+        "values": merged_values
+    }
+    return analytical_mesh

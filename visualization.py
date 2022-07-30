@@ -9,12 +9,16 @@ from enum import Enum
 from typing import Dict, Tuple, Union
 from pathlib import Path
 
+from honeybee.model import Model as HBModel
+
 from pollination_streamlit_viewer import viewer
 from pollination_streamlit.api.client import ApiClient
 from pollination_streamlit.interactors import Job
+from pollination_streamlit_io import send_hbjson, send_geometry
 from queenbee.job.job import JobStatusEnum
 
 from estidama import SIM_TIMES
+from helper import create_analytical_mesh
 
 
 class SimStatus(Enum):
@@ -146,13 +150,15 @@ def generate_dicts(job: Job, target_folder: Path) -> Tuple[Dict[str, str],
     return sim_dict, viz_dict, res_file_dict
 
 
-def visualization(job_url: str,
+def visualization(host: str, hbjson_path: Path, job_url: str,
                   api_client: ApiClient,
                   target_folder: Path) -> Tuple[Union[None, Dict[str, str]],
                                                 Union[None, Dict[str, Path]]]:
     """UI of visualization tab of the Estidama-daylight app.
 
     args:
+        host: A string representing the environment the app is running inside.
+        hbjson_path: Path to the HBJSON file with grids.
         job_url: Valid URL of a job on Pollination as a string.
         api_client: ApiClient object containing Pollination credentials.
         target_folder: Path to the target folder where outputs from the finished job
@@ -181,25 +187,41 @@ def visualization(job_url: str,
         st.write('See how much daylight the occupied areas receive on selected points'
                  ' in time during the year.')
 
-        col0, col1 = st.columns(2)
+        if host.lower() == 'web':
+            col0, col1 = st.columns(2)
 
-        with col0:
-            for sim_time in SIM_TIMES[:3]:
-                id = sim_dict[sim_time.as_string()]
-                viz = viz_dict[id].joinpath('point_in_time.vtkjs')
-                st.write(
-                    f'Daylight levels on {sim_time.description()} @ {sim_time.hour}:00')
-                viewer(key=f'{sim_time.as_string()}_viewer',
-                       content=viz.read_bytes(), style={'height': '344px'})
+            with col0:
+                for sim_time in SIM_TIMES[:3]:
+                    id = sim_dict[str(sim_time)]
+                    viz = viz_dict[id].joinpath('point_in_time.vtkjs')
+                    st.write(f'{sim_time.description()} @ {sim_time.hour}:00')
+                    viewer(key=f'{str(sim_time)}_viewer',
+                           content=viz.read_bytes(), style={'height': '344px'})
 
-        with col1:
-            for sim_time in SIM_TIMES[3:]:
-                id = sim_dict[sim_time.as_string()]
-                viz = viz_dict[id].joinpath('point_in_time.vtkjs')
-                st.write(
-                    f'Daylight levels on Summer {sim_time.description()} @ {sim_time.hour}:00')
-                viewer(key=f'{sim_time.as_string()}_viewer',
-                       content=viz.read_bytes(), style={'height': '344px'})
+            with col1:
+                for sim_time in SIM_TIMES[3:]:
+                    id = sim_dict[str(sim_time)]
+                    viz = viz_dict[id].joinpath('point_in_time.vtkjs')
+                    st.write(f'{sim_time.description()} @ {sim_time.hour}:00')
+                    viewer(key=f'{str(sim_time)}_viewer',
+                           content=viz.read_bytes(), style={'height': '344px'})
+
+        elif host.lower() == 'rhino' or host.lower() == 'sketchup':
+
+            options = {
+                f'{sim_time.description()} @ {sim_time.hour}:00': sim_time
+                for sim_time in SIM_TIMES}
+
+            option = st.radio(f'Select time', list(options.keys()))
+
+            sim_time = options[option]
+            id = sim_dict[str(sim_time)]
+            res_path = res_file_dict[id]
+
+            hb_model = HBModel.from_hbjson(hbjson_path)
+            send_hbjson(key='model-results', hbjson=hb_model.to_dict())
+            analytical_mesh = create_analytical_mesh(res_path, hb_model)
+            send_geometry(key=f'{str(sim_time)}_viz', geometry=analytical_mesh)
 
         st.write('Go to the next tab to see the results.')
 

@@ -71,7 +71,7 @@ def create_job(hbjson_path: Path, api_client: ApiClient, owner: str, project: st
         argument['sky'] = cie_sky(latitude, longitude, point.month,
                                   point.day, point.hour, north_angle, ground_reflectance)
         arguments.append(argument)
-        argument['month_day_hour'] = point.as_string()
+        argument['month_day_hour'] = str(point)
 
     new_job.arguments = arguments
 

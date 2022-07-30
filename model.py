@@ -14,7 +14,7 @@ from honeybee_radiance.sensorgrid import SensorGrid
 from honeybee.facetype import Floor
 from honeybee_vtk.vtkjs.schema import SensorGridOptions
 
-from pollination_streamlit_io import send_hbjson
+from pollination_streamlit_io import send_hbjson, send_geometry
 
 from helper import write_hbjson, hash_model, hash_room
 from web import show_model
@@ -63,6 +63,9 @@ def add_sensor_grids(hb_model: HBModel, rooms: List[Room],
         Honeybee model with SensorGrids added.
     """
     grids = [generate_room_grid(room, grid_size, tolerance) for room in rooms]
+
+    if hb_model.properties.radiance.sensor_grids:
+        hb_model.properties.radiance.sensor_grids = ()
 
     model = hb_model.duplicate()
     model.properties.radiance.add_sensor_grids(grids)

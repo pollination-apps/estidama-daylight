@@ -308,10 +308,13 @@ class PointInTime:
             if self._month == 9:
                 return 'Equinox'
             elif self._month == 6:
-                return 'Solstice'
+                return 'Summer Solstice'
 
-    def as_string(self) -> str:
+    def __str__(self) -> str:
         return f'{self._month}_{self._day}_{self._hour}'
+
+    def __repr__(self) -> str:
+        return f'{self.description()} @ {self._hour}:00'
 
 
 SIM_TIMES = [PointInTime(9, 21, 10), PointInTime(9, 21, 12), PointInTime(9, 21, 14),
