@@ -120,6 +120,8 @@ def introduction(host: str, target_folder: Path,
 
             hbjson_path = write_hbjson(target_folder, hb_model)
             show_model(hbjson_path, target_folder, key='model')
+        else:
+            st.success('Model linked. Move to the next tab to select occupied areas.')
     else:
         hb_model = None
 
