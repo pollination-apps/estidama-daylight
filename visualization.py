@@ -221,7 +221,7 @@ def visualization(host: str, hbjson_path: Path, job_url: str,
             hb_model = HBModel.from_hbjson(hbjson_path)
             send_hbjson(key='model-results', hbjson=hb_model.to_dict())
             analytical_mesh = create_analytical_mesh(res_path, hb_model)
-            send_geometry(key=f'{str(sim_time)}_viz', geometry=analytical_mesh)
+            send_geometry(key='result_viz', geometry=analytical_mesh)
 
         st.write('Go to the next tab to see the results.')
 
