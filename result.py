@@ -166,7 +166,7 @@ def prepare_results(program: Program, occupied_rooms: List[Room],
         if i < len(occupied_rooms):
             room = occupied_rooms[i]
             data['names'].append(room.display_name)
-            data['areas'].append(room.floor_area)
+            data['areas'].append(round(room.floor_area, 2))
             total_area += room.floor_area
 
             compliant_areas = []
@@ -176,18 +176,18 @@ def prepare_results(program: Program, occupied_rooms: List[Room],
                 res_file_path = res_file_dict[sim_id].joinpath(file_name)
                 compliant_area = room.floor_area*percentage_complied(
                     res_file_path, program.min_threshold)
-                data[str(sim_time)].append(compliant_area)
+                data[str(sim_time)].append(round(compliant_area, 2))
                 compliant_areas.append(compliant_area)
 
             average_compliant_area = mean(compliant_areas)
-            data['average'].append(average_compliant_area)
+            data['average'].append(round(average_compliant_area, 2))
             total_average_area += average_compliant_area
         else:
             data['names'].append('<b>Total</b>')
-            data['areas'].append(f'<b>{total_area}</b>')
+            data['areas'].append(f'<b>{round(total_area,2)}</b>')
             for sim_time in SIM_TIMES:
                 data[str(sim_time)].append('')
-            data['average'].append(f'<b>{total_average_area}</b>')
+            data['average'].append(f'<b>{round(total_average_area,2)}</b>')
 
     data_df = pd.DataFrame.from_dict(data)
 
@@ -213,7 +213,7 @@ def prepare_results(program: Program, occupied_rooms: List[Room],
 
     compliant_area_percentage = total_average_area / total_area
 
-    return figure, compliant_area_percentage
+    return figure, round(compliant_area_percentage, 2)
 
 
 def result(program: Program, occupied_rooms: List[Room],
